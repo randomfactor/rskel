@@ -1,0 +1,15 @@
+# OS / editor junk
+.DS_Store
+.vscode/
+.idea/
+
+# Rust build output
+**/target/
+
+# Frontend build output
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Logs
+*.log
