@@ -39,8 +39,8 @@ impl DbPool<Client> {
 impl DbPool<LocalDb> {
     pub async fn from_env() -> Result<Self> {
         let path = std::env::var("SURREALDB_PATH").unwrap_or_else(|_| "./data/surrealdb".to_string());
-        let namespace = std::env::var("SURREALDB_NS").unwrap_or_else(|_| "rskel_ns".to_string());
-        let database = std::env::var("SURREALDB_DB").unwrap_or_else(|_| "rskel_db".to_string());
+        let namespace = std::env::var("SURREALDB_NS").unwrap_or_else(|_| "main".to_string());
+        let database = std::env::var("SURREALDB_DB").unwrap_or_else(|_| "main".to_string());
         let username = std::env::var("SURREALDB_USER").unwrap_or_else(|_| "rskel_local".to_string());
         let password = std::env::var("SURREALDB_PASS").unwrap_or_else(|_| "local_only_duh".to_string());
 
@@ -60,15 +60,10 @@ impl DbPool<LocalDb> {
         path: &str,
         namespace: &str,
         database: &str,
-        username: &str,
-        password: &str,
+        _username: &str,
+        _password: &str,
     ) -> Result<Self> {
         let db = Surreal::new::<RocksDb>(path).await?;
-        db.signin(Root {
-            username,
-            password,
-        })
-        .await?;
         db.use_ns(namespace).use_db(database).await?;
 
         Ok(Self {
@@ -116,18 +111,14 @@ impl<T: surrealdb::Connection> KVStore for DbPool<T> {
         }
 
         let key = key.to_string();
-        let mut response = self
-            .inner
-            .query("UPDATE type::thing($key) SET value = value + $delta RETURN VALUE value")
-            .bind(("key", key))
-            .bind(("delta", delta))
-            .await?;
-
-        let value: Option<Value> = response.take(0)?;
-        Ok(match value {
+        let current = match self.get(&key).await? {
             Some(Value::Number(number)) => number.as_i64().unwrap_or(0),
             Some(Value::String(text)) => text.parse::<i64>().unwrap_or(0),
-            _ => 0,
-        })
+            Some(_) | None => 0,
+        };
+
+        let next = current + delta;
+        self.set(&key, serde_json::json!(next)).await?;
+        Ok(next)
     }
 }

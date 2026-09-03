@@ -13,6 +13,8 @@ use serde_json::Value;
 
 use db::{DbPool, KVStore};
 
+type LocalDbPool = DbPool<surrealdb::engine::local::Db>;
+
 #[derive(Serialize)]
 struct DataResponse {
     message: String,
@@ -49,8 +51,23 @@ impl Fairing for CORS {
     }
 }
 
+#[get("/")]
+async fn root(store: &State<LocalDbPool>) -> (rocket::http::ContentType, String) {
+    let visits = store
+        .increment("counter:global_home_visits", 1)
+        .await
+        .unwrap_or(0);
+
+    (
+        rocket::http::ContentType::HTML,
+        format!(
+            "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>RSKEL</title></head><body><h1>RSKEL</h1><p>Visits: {visits}</p></body></html>"
+        ),
+    )
+}
+
 #[get("/api/data")]
-async fn get_data(store: &State<DbPool>) -> Json<DataResponse> {
+async fn get_data(store: &State<LocalDbPool>) -> Json<DataResponse> {
     let visits = store
         .increment("counter:global_home_visits", 1)
         .await
@@ -63,7 +80,7 @@ async fn get_data(store: &State<DbPool>) -> Json<DataResponse> {
 }
 
 #[get("/api/visits")]
-async fn get_visits(store: &State<DbPool>) -> Json<VisitResponse> {
+async fn get_visits(store: &State<LocalDbPool>) -> Json<VisitResponse> {
     let total = match store.get("counter:global_home_visits").await {
         Ok(Some(Value::Number(number))) => number.as_i64().unwrap_or(0),
         Ok(Some(Value::String(value))) => value.parse::<i64>().unwrap_or(0),
@@ -81,12 +98,12 @@ fn options_data() -> rocket::http::Status {
 
 #[launch]
 async fn rocket() -> _ {
-    let store = DbPool::from_env()
+    let store: LocalDbPool = DbPool::from_env()
         .await
         .expect("failed to initialize SurrealDB connection pool");
 
     rocket::build()
         .manage(store)
         .attach(CORS)
-        .mount("/", routes![get_data, get_visits, options_data])
+        .mount("/", routes![root, get_data, get_visits, options_data])
 }

@@ -79,4 +79,29 @@ mod tests {
             .expect("get should return the incremented value");
         assert_eq!(updated, Some(json!(10)));
     }
+
+    #[tokio::test]
+    async fn increment_creates_missing_counter_and_keeps_going() {
+        let store = DbPool::new_in_memory("test_ns", "test_db")
+            .await
+            .expect("in-memory SurrealDB should initialize");
+
+        let first = store
+            .increment("counter:global_home_visits", 1)
+            .await
+            .expect("increment should create a first value");
+        assert_eq!(first, 1);
+
+        let second = store
+            .increment("counter:global_home_visits", 1)
+            .await
+            .expect("increment should update the stored value");
+        assert_eq!(second, 2);
+
+        let third = store
+            .increment("counter:global_home_visits", 1)
+            .await
+            .expect("increment should keep increasing");
+        assert_eq!(third, 3);
+    }
 }
