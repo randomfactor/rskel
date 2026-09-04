@@ -1,35 +1,19 @@
 <script>
   import { onMount } from 'svelte'
+  import Router, { replace } from 'svelte-spa-router'
   import { authState, checkSession } from './lib/auth.svelte.js'
-  import Home from './views/Home.svelte'
-  import Login from './views/Login.svelte'
-  import About from './views/About.svelte'
+  import { routes } from './routes.js'
+  import Navbar from './components/Navbar.svelte'
 
-  let currentRoute = $state('home')
-
-  function resolveRoute() {
-    const hash = window.location.hash || '#/'
-    if (hash === '#/login') {
-      currentRoute = 'login'
-      return
+  function handleConditionsFailed(event) {
+    const detail = event?.detail
+    if (detail?.route === '/profile') {
+      replace('/login')
     }
-
-    if (hash === '#/about') {
-      currentRoute = 'about'
-      return
-    }
-
-    currentRoute = 'home'
   }
 
   onMount(() => {
-    resolveRoute()
-    window.addEventListener('hashchange', resolveRoute)
     void checkSession()
-
-    return () => {
-      window.removeEventListener('hashchange', resolveRoute)
-    }
   })
 </script>
 
@@ -37,15 +21,19 @@
   <main class="loading-shell">
     <div class="spinner" aria-live="polite" aria-label="Loading session"></div>
   </main>
-{:else if currentRoute === 'login'}
-  <Login />
-{:else if currentRoute === 'about'}
-  <About />
 {:else}
-  <Home />
+  <div class="app-shell">
+    <Navbar />
+    <Router {routes} on:conditionsFailed={handleConditionsFailed} />
+  </div>
 {/if}
 
 <style>
+  .app-shell {
+    min-height: 100vh;
+    background: #f8fafc;
+  }
+
   .loading-shell {
     min-height: 100vh;
     display: grid;
