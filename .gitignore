@@ -13,6 +13,7 @@ frontend/.vite/
 
 # Local SurrealDB data
 /backend/data/surrealdb/
+/data/surrealdb/
 
 # Logs
 *.log

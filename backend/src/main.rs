@@ -2,6 +2,7 @@
 extern crate rocket;
 
 mod db;
+mod routes;
 
 use rocket::State;
 use rocket::fairing::{Fairing, Info, Kind};
@@ -12,6 +13,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use db::{DbPool, KVStore};
+use routes::static_files::{file_server, spa_fallback_catcher};
 
 type LocalDbPool = DbPool<surrealdb::engine::local::Db>;
 
@@ -49,21 +51,6 @@ impl Fairing for CORS {
         response.set_header(Header::new("Access-Control-Allow-Headers", "Content-Type"));
         response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
     }
-}
-
-#[get("/")]
-async fn root(store: &State<LocalDbPool>) -> (rocket::http::ContentType, String) {
-    let visits = store
-        .increment("counter:global_home_visits", 1)
-        .await
-        .unwrap_or(0);
-
-    (
-        rocket::http::ContentType::HTML,
-        format!(
-            "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>RSKEL</title></head><body><h1>RSKEL</h1><p>Visits: {visits}</p></body></html>"
-        ),
-    )
 }
 
 #[get("/api/data")]
@@ -105,5 +92,8 @@ async fn rocket() -> _ {
     rocket::build()
         .manage(store)
         .attach(CORS)
-        .mount("/", routes![root, get_data, get_visits, options_data])
+        .mount("/api", routes![get_data, get_visits, options_data])
+        .mount("/auth", routes![])
+        .mount("/", file_server())
+        .register("/", catchers![spa_fallback_catcher])
 }
