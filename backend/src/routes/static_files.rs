@@ -1,6 +1,6 @@
 use rocket::fs::{FileServer, NamedFile};
 use rocket::http::Method;
-use rocket::{catch, Request};
+use rocket::Request;
 use std::path::PathBuf;
 
 pub fn frontend_dist_root() -> PathBuf {
@@ -9,10 +9,6 @@ pub fn frontend_dist_root() -> PathBuf {
 
 pub fn index_html_path() -> PathBuf {
     frontend_dist_root().join("index.html")
-}
-
-pub async fn spa_fallback(_path: PathBuf) -> Option<NamedFile> {
-    NamedFile::open(index_html_path()).await.ok()
 }
 
 #[catch(404)]
@@ -32,13 +28,10 @@ pub fn file_server() -> FileServer {
 
 #[cfg(test)]
 mod tests {
-    use super::{index_html_path, spa_fallback};
-    use std::path::PathBuf;
+    use super::{index_html_path};
 
-    #[tokio::test]
-    async fn spa_fallback_returns_frontend_index_when_present() {
-        let result = spa_fallback(PathBuf::from("/some/deep/route")).await;
-        assert!(result.is_some());
+    #[test]
+    fn frontend_index_exists_for_spa_fallback() {
         assert!(index_html_path().exists());
     }
 }

@@ -1,8 +1,33 @@
-<script>
+<script lang="ts">
+  import { onMount } from 'svelte'
   import svelteLogo from './assets/svelte.svg'
   import viteLogo from './assets/vite.svg'
   import heroImg from './assets/hero.png'
   import Counter from './lib/Counter.svelte'
+
+  let visits = $state(0)
+  let loadingVisits = $state(true)
+
+  const loadVisits = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/visit')
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`)
+      }
+
+      const data = (await response.json()) as { total?: number }
+      visits = data.total ?? 0
+    } catch (error) {
+      console.error('Failed to load visits:', error)
+      visits = 0
+    } finally {
+      loadingVisits = false
+    }
+  }
+
+  onMount(() => {
+    void loadVisits()
+  })
 </script>
 
 <section id="center">
@@ -16,6 +41,10 @@
     <p>Edit <code>src/App.svelte</code> and save to test <code>HMR</code></p>
   </div>
   <Counter />
+  <div class="visits-panel" aria-live="polite">
+    <span class="visits-label">Visits</span>
+    <strong>{loadingVisits ? 'Loading...' : visits}</strong>
+  </div>
 </section>
 
 <div class="ticks"></div>

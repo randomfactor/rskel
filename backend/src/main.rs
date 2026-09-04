@@ -53,7 +53,7 @@ impl Fairing for CORS {
     }
 }
 
-#[get("/api/data")]
+#[get("/data")]
 async fn get_data(store: &State<LocalDbPool>) -> Json<DataResponse> {
     let visits = store
         .increment("counter:global_home_visits", 1)
@@ -66,7 +66,7 @@ async fn get_data(store: &State<LocalDbPool>) -> Json<DataResponse> {
     })
 }
 
-#[get("/api/visits")]
+#[get("/get-visits")]
 async fn get_visits(store: &State<LocalDbPool>) -> Json<VisitResponse> {
     let total = match store.get("counter:global_home_visits").await {
         Ok(Some(Value::Number(number))) => number.as_i64().unwrap_or(0),
@@ -78,7 +78,17 @@ async fn get_visits(store: &State<LocalDbPool>) -> Json<VisitResponse> {
     Json(VisitResponse { total })
 }
 
-#[options("/api/data")]
+#[get("/visit")]
+async fn visit(store: &State<LocalDbPool>) -> Json<VisitResponse> {
+    let total = store
+        .increment("counter:global_home_visits", 1)
+        .await
+        .unwrap_or(0);
+
+    Json(VisitResponse { total })
+}
+
+#[options("/data")]
 fn options_data() -> rocket::http::Status {
     rocket::http::Status::NoContent
 }
@@ -92,7 +102,7 @@ async fn rocket() -> _ {
     rocket::build()
         .manage(store)
         .attach(CORS)
-        .mount("/api", routes![get_data, get_visits, options_data])
+        .mount("/api", routes![get_data, get_visits, visit, options_data])
         .mount("/auth", routes![])
         .mount("/", file_server())
         .register("/", catchers![spa_fallback_catcher])
