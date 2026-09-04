@@ -10,7 +10,7 @@ use rocket::http::Header;
 use rocket::serde::json::Json;
 use rocket::{Request, Response};
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use db::{DbPool, KVStore};
 use routes::static_files::{file_server, spa_fallback_catcher};
@@ -88,6 +88,22 @@ async fn visit(store: &State<LocalDbPool>) -> Json<VisitResponse> {
     Json(VisitResponse { total })
 }
 
+#[get("/me")]
+async fn me() -> (rocket::http::Status, Json<Value>) {
+    (
+        rocket::http::Status::Unauthorized,
+        Json(json!({
+            "error": "unauthorized",
+            "message": "Authentication required or session expired"
+        })),
+    )
+}
+
+#[post("/logout")]
+async fn logout() -> rocket::http::Status {
+    rocket::http::Status::Ok
+}
+
 #[options("/data")]
 fn options_data() -> rocket::http::Status {
     rocket::http::Status::NoContent
@@ -102,8 +118,8 @@ async fn rocket() -> _ {
     rocket::build()
         .manage(store)
         .attach(CORS)
-        .mount("/api", routes![get_data, get_visits, visit, options_data])
-        .mount("/auth", routes![])
+        .mount("/api", routes![get_data, get_visits, visit, me, options_data])
+        .mount("/auth", routes![logout])
         .mount("/", file_server())
         .register("/", catchers![spa_fallback_catcher])
 }
