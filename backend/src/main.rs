@@ -1,7 +1,10 @@
 #[macro_use]
 extern crate rocket;
 
+mod auth;
+mod config;
 mod db;
+mod guards;
 mod routes;
 
 use rocket::State;
@@ -10,10 +13,14 @@ use rocket::http::Header;
 use rocket::serde::json::Json;
 use rocket::{Request, Response};
 use serde::Serialize;
-use serde_json::{Value, json};
+use serde_json::Value;
 
+use auth::google::GoogleOAuthProvider;
+use config::AuthConfig;
 use db::{DbPool, KVStore};
+use routes::auth::{google_callback, google_login, logout};
 use routes::static_files::{file_server, spa_fallback_catcher};
+use routes::user::me;
 
 type LocalDbPool = DbPool<surrealdb::engine::local::Db>;
 
@@ -88,22 +95,6 @@ async fn visit(store: &State<LocalDbPool>) -> Json<VisitResponse> {
     Json(VisitResponse { total })
 }
 
-#[get("/me")]
-async fn me() -> (rocket::http::Status, Json<Value>) {
-    (
-        rocket::http::Status::Unauthorized,
-        Json(json!({
-            "error": "unauthorized",
-            "message": "Authentication required or session expired"
-        })),
-    )
-}
-
-#[post("/logout")]
-async fn logout() -> rocket::http::Status {
-    rocket::http::Status::Ok
-}
-
 #[options("/data")]
 fn options_data() -> rocket::http::Status {
     rocket::http::Status::NoContent
@@ -111,15 +102,25 @@ fn options_data() -> rocket::http::Status {
 
 #[launch]
 async fn rocket() -> _ {
+    if cfg!(debug_assertions) { // load env vars from file, but not in production
+        dotenvy::from_filename(".env.local").ok();
+    }
+
     let store: LocalDbPool = DbPool::from_env()
         .await
         .expect("failed to initialize SurrealDB connection pool");
+    let auth_config = AuthConfig::from_env().expect("failed to load auth config");
+    let provider = GoogleOAuthProvider::new(auth_config.clone())
+        .await
+        .expect("failed to initialize Google OAuth provider");
 
     rocket::build()
         .manage(store)
+        .manage(auth_config)
+        .manage(provider)
         .attach(CORS)
         .mount("/api", routes![get_data, get_visits, visit, me, options_data])
-        .mount("/auth", routes![logout])
+        .mount("/auth", routes![google_login, google_callback, logout])
         .mount("/", file_server())
         .register("/", catchers![spa_fallback_catcher])
 }
