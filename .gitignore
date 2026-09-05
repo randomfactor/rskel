@@ -21,3 +21,6 @@ frontend/.vite/
 
 # Logs
 *.log
+
+# Coverage reports
+lcov.info
