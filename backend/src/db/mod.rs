@@ -104,4 +104,31 @@ mod tests {
             .expect("increment should keep increasing");
         assert_eq!(third, 3);
     }
+
+    #[tokio::test]
+    async fn uuid_and_session_keys_work_with_in_memory_db() {
+        let store = DbPool::new_in_memory("test_ns", "test_db")
+            .await
+            .expect("in-memory SurrealDB should initialize");
+
+        let session_id = uuid::Uuid::new_v4().to_string();
+        let key = format!("session:{session_id}");
+        let user_data = json!({
+            "id": "12345",
+            "email": "test@example.com",
+            "name": "Test User",
+        });
+
+        store
+            .set(&key, user_data.clone())
+            .await
+            .expect("set should handle keys with UUIDs");
+
+        let retrieved = store
+            .get(&key)
+            .await
+            .expect("get should read keys with UUIDs");
+
+        assert_eq!(retrieved, Some(user_data));
+    }
 }

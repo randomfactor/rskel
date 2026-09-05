@@ -58,7 +58,7 @@ pub async fn google_login(provider: &State<GoogleOAuthProvider>, cookies: &Cooki
     Redirect::to(auth_request.authorization_url)
 }
 
-#[get("/google/callback?<query>")]
+#[get("/google/callback?<query..>")]
 pub async fn google_callback(
     query: CallbackQuery,
     provider: &State<GoogleOAuthProvider>,

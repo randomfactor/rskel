@@ -72,6 +72,14 @@ impl DbPool<LocalDb> {
     }
 }
 
+fn split_key(key: &str) -> (String, String) {
+    if let Some((table, id)) = key.split_once(':') {
+        (table.to_string(), id.to_string())
+    } else {
+        ("kv".to_string(), key.to_string())
+    }
+}
+
 #[async_trait]
 impl<T: surrealdb::Connection> KVStore for DbPool<T> {
     async fn get(&self, key: &str) -> Result<Option<Value>> {
@@ -79,11 +87,12 @@ impl<T: surrealdb::Connection> KVStore for DbPool<T> {
             return Err(Error::InvalidKey("key cannot be empty".to_string()));
         }
 
-        let key = key.to_string();
+        let (table, id) = split_key(key);
         let mut response = self
             .inner
-            .query("SELECT VALUE value FROM type::thing($key)")
-            .bind(("key", key))
+            .query("SELECT VALUE value FROM type::thing($tb, $id)")
+            .bind(("tb", table))
+            .bind(("id", id))
             .await?;
 
         let value: Option<Value> = response.take(0)?;
@@ -95,10 +104,11 @@ impl<T: surrealdb::Connection> KVStore for DbPool<T> {
             return Err(Error::InvalidKey("key cannot be empty".to_string()));
         }
 
-        let key = key.to_string();
+        let (table, id) = split_key(key);
         self.inner
-            .query("UPSERT type::thing($key) CONTENT { value: $value }")
-            .bind(("key", key))
+            .query("UPSERT type::thing($tb, $id) CONTENT { value: $value }")
+            .bind(("tb", table))
+            .bind(("id", id))
             .bind(("value", value))
             .await?;
 
