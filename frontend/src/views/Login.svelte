@@ -10,9 +10,10 @@
     <h1>Sign In</h1>
 
     <div class="provider-list">
-      <button class="primary-button" onclick={goToGoogleLogin}>Continue with Google</button>
-      <button class="secondary-button" disabled>Microsoft (Coming Soon)</button>
-      <button class="secondary-button" disabled>Yahoo (Coming Soon)</button>
+      <button class="primary-button" onclick={goToGoogleLogin}>
+        <span class="google-mark" aria-hidden="true">G</span>
+        <span>Continue with Google</span>
+      </button>
     </div>
 
     <a href="#/" class="back-link">← Back to Home</a>
@@ -57,8 +58,7 @@
     gap: 0.75rem;
   }
 
-  .primary-button,
-  .secondary-button {
+  .primary-button {
     width: 100%;
     border-radius: 12px;
     padding: 0.9rem 1rem;
@@ -66,20 +66,28 @@
     font-weight: 700;
     border: 1px solid transparent;
     transition: transform 0.2s ease;
-  }
-
-  .primary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
     background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
     color: white;
     border: none;
     cursor: pointer;
   }
 
-  .secondary-button {
-    background: #f8fafc;
-    color: #475569;
-    border-color: #e2e8f0;
-    cursor: not-allowed;
+  .google-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 1.2rem;
+    font-weight: 900;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1;
   }
 
   .primary-button:hover:not(:disabled) {

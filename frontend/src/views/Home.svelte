@@ -1,5 +1,30 @@
 <script>
+  import { onMount } from 'svelte'
   import { authState, logout } from '../lib/auth.svelte.js'
+
+  let totalVisits = 0
+
+  async function loadVisits() {
+    try {
+      const response = await fetch('/api/visit', {
+        method: 'GET',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        return
+      }
+
+      const data = await response.json()
+      totalVisits = Number(data?.total ?? 0)
+    } catch (error) {
+      console.warn('Failed to fetch visit count:', error)
+    }
+  }
+
+  onMount(() => {
+    void loadVisits()
+  })
 
   function handleLogout() {
     void logout()
@@ -10,28 +35,33 @@
   <main class="auth-shell">
     <section class="card">
       <p class="eyebrow">Welcome</p>
-      <h1>Build faster with a secure, shared workspace.</h1>
-      <p class="description">
-        Sign in to access your member dashboard, manage your account, and explore collaborative
-        features designed for your team.
-      </p>
+      <h1>Rust / Svelte Skeleton Application</h1>
+      <ul class="description-list">
+        <li>Rocket web server</li>
+        <li>SurrealDB persistence layer</li>
+        <li>OpenConnect user login</li>
+      </ul>
       <a class="primary-button" href="#/login">Sign In</a>
     </section>
   </main>
 {:else}
   <main class="auth-shell">
     <section class="card dashboard">
-      <p class="eyebrow">Member dashboard</p>
+      <p class="eyebrow">Site Name</p>
       <h1>Welcome back, {authState.user?.name ?? 'friend'}!</h1>
       <p class="description">{authState.user?.email ?? 'You are signed in.'}</p>
 
+      <p class="description">
+        The number of visits for all logged-in users is tracked over time in a value maintained in
+        the SurrealDB database for the application.
+      </p>
+      <p class="description">
+        This code demonstrates how to use the SurrealDB Rust client to modify a value in the 
+        database and get it from the frontend for display.
+      </p>
+
       <div class="feature-list">
-        <h2>What you can do</h2>
-        <ul>
-          <li>Track your activity and workspace updates.</li>
-          <li>Access personalized tools and saved settings.</li>
-          <li>Jump into the latest project insights and reports.</li>
-        </ul>
+        <h2>Total visits: {totalVisits}</h2>
       </div>
 
       <button class="secondary-button" onclick={handleLogout}>Logout</button>
@@ -127,13 +157,5 @@
     margin: 0 0 0.75rem;
     font-size: 1.05rem;
     color: #111827;
-  }
-
-  .feature-list ul {
-    margin: 0;
-    padding-left: 1.2rem;
-    color: #374151;
-    display: grid;
-    gap: 0.35rem;
   }
 </style>

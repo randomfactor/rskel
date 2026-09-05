@@ -1,7 +1,7 @@
 <main class="page-shell">
   <section class="card">
     <p class="eyebrow">About</p>
-    <h1>Built for modern collaboration.</h1>
+    <h3>Efficient modern UI</h3>
     <p>
       This app combines a Rust + Rocket backend with a Svelte frontend to deliver a secure,
       OAuth-enabled experience that is easy to extend with additional providers and features.
@@ -37,7 +37,7 @@
     text-transform: uppercase;
   }
 
-  h1 {
+  h3 {
     margin: 0 0 1rem;
     color: #111827;
   }
